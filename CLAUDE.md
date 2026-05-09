@@ -34,6 +34,10 @@ The plugin uses a **sidebar ItemView** (`BookmarkView`) as the primary UI. Users
 
 - **`pdf-select-modal.ts`** — `FuzzySuggestModal<TFile>` filtered to `.pdf` files.
 
+- **`pdf-context-menu.ts`** — Intercepts right-click on Obsidian's built-in PDF outline panel via capture-phase `contextmenu` listener. Replaces the default context menu with a custom `Menu` containing "Copy bookmark link" using the plugin's full hierarchical path format. Walks Obsidian's `.tree-item > .tree-item-self > .tree-item-inner` DOM structure to extract the full bookmark path for duplicate-title disambiguation.
+
+- **`path-utils.ts`** — Shared `getRelativePath(from, to)` utility used by both `bookmark-view.ts` and `pdf-context-menu.ts` to compute relative file paths between vault notes and PDFs.
+
 - **`settings.ts`** — Two toggles: `showPageNumbers` (include page in link text) and `autoDetectUpdates` (prompt on PDF modify).
 
 ### The monkey-patch (openLinkText)
@@ -60,6 +64,9 @@ User clicks bookmark → BookmarkView.onBookmarkSelected()
   → app.workspace.openLinkText(pdfPath#page=N)  [via monkey-patch]
   → editor.replaceSelection(link)                [if editor active]
   → BookmarkStore.saveLinkMapping()              [for future remapping]
+User right-clicks PDF outline item → PdfContextMenuHandler.onContextMenu()
+  → findPdfOutlineContext() → extractOutlinePath() → findBookmarkByPath()
+  → Menu with "Copy bookmark link"
 PDF modified → vault.on('modify') → cache invalidated → user notified
 User runs "Update all links" → LinkManager.updateAllLinks()
   → scanAllNotes() → re-parse PDF → match + Vault.process()
