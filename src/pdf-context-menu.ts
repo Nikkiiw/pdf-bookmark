@@ -96,7 +96,7 @@ export class PdfContextMenuHandler {
       ? this.buildLink(node, file)
       : `[${title}](${file.path})`;
 
-    this.showMenu(evt, node, title, link, file);
+    this.showMenu(evt, title, link);
   }
 
   private findPdfOutlineContext(
@@ -260,10 +260,8 @@ export class PdfContextMenuHandler {
 
   private showMenu(
     evt: MouseEvent,
-    node: BookmarkNode | null,
     title: string,
     link: string,
-    pdfFile: TFile,
   ): void {
     const menu = new Menu();
 
@@ -280,21 +278,6 @@ export class PdfContextMenuHandler {
           }
         }),
     );
-
-    if (node) {
-      menu.addItem((item) =>
-        item
-          .setTitle('Open in PDF')
-          .setIcon('file-text')
-          .onClick(() => {
-            this.plugin.app.workspace.openLinkText(
-              `${pdfFile.path}#page=${node.page}`,
-              '',
-              false,
-            );
-          }),
-      );
-    }
 
     menu.showAtMouseEvent(evt);
   }
