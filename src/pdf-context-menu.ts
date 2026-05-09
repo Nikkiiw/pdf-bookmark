@@ -10,28 +10,23 @@ import type { BookmarkNode } from './types';
 import { getRelativePath } from './path-utils';
 
 /**
- * CSS selectors for identifying PDF outline panel items in Obsidian's DOM.
- *
- * Obsidian's PDF viewer (based on pdfjs-dist v3.x) renders outline items
- * with class names that may include "outlineItem", "treeItem", etc.
- * These selectors are tried in order; the first match wins.
- *
- * If Obsidian updates its PDF viewer and breaks these selectors, inspect the
- * DOM with DevTools and update the arrays below.
+ * Each selector identifies exactly one outline item per DOM level.
+ * Obsidian's tree structure: .tree-item > .tree-item-self > .tree-item-inner
+ * plus .tree-item > .tree-item-children > .tree-item (recursive).
  */
 const OUTLINE_ITEM_SELECTORS = [
+  '.tree-item',
   '.outlineItem',
   '.outline-item',
-  '.tree-item',
   'li[role="treeitem"]',
   '[role="treeitem"]',
 ];
 
 const OUTLINE_PANEL_SELECTORS = [
+  '.pdf-outline-view',
   '.outlineView',
   '.outline-view',
   '#outlineView',
-  '[class*="outline"]',
 ];
 
 /**
@@ -46,18 +41,11 @@ export class PdfContextMenuHandler {
     this.plugin = plugin;
   }
 
-  /**
-   * Install the contextmenu listener on the main window and all popout windows.
-   * Cleanup is automatic via registerDomEvent/registerEvent.
-   */
   install(): void {
     const handler = (evt: MouseEvent) => this.onContextMenu(evt);
 
-    // Use capture phase so our handler fires before Obsidian's internal
-    // handlers on child elements — otherwise we can't prevent the native menu.
     this.plugin.registerDomEvent(activeDocument, 'contextmenu', handler, true);
 
-    // Popout windows
     this.plugin.registerEvent(
       this.plugin.app.workspace.on('window-open', (_win, win) => {
         this.plugin.registerDomEvent(win.document, 'contextmenu', handler, true);
@@ -65,16 +53,12 @@ export class PdfContextMenuHandler {
     );
   }
 
-  /**
-   * Main contextmenu event handler.
-   */
   private async onContextMenu(evt: MouseEvent): Promise<void> {
     if (evt.defaultPrevented) return;
 
     const target = evt.target as HTMLElement;
     if (!target) return;
 
-    // Find the PDF leaf and outline element
     const ctx = this.findPdfOutlineContext(target);
     if (!ctx) return;
 
@@ -86,11 +70,24 @@ export class PdfContextMenuHandler {
 
     if (!title) return;
 
-    // Look up the bookmark
     let node: BookmarkNode | null = null;
     try {
       const bookmarks = await this.plugin.store.getBookmarks(file);
       node = this.plugin.linkManager.findBookmarkByTitle(bookmarks, title);
+
+      if (node) {
+        const allMatches = this.findAllBookmarksByTitle(bookmarks, title);
+        if (allMatches.length > 1) {
+          const domPath = this.extractOutlinePath(outlineEl);
+          if (domPath.length > 0) {
+            const exact = this.plugin.linkManager.findBookmarkByPath(
+              bookmarks,
+              domPath,
+            );
+            if (exact) node = exact;
+          }
+        }
+      }
     } catch {
       // getBookmarks may throw if PDF is corrupted
     }
@@ -102,9 +99,6 @@ export class PdfContextMenuHandler {
     this.showMenu(evt, node, title, link, file);
   }
 
-  /**
-   * Find the PDF leaf and the outline item element from a DOM target.
-   */
   private findPdfOutlineContext(
     target: HTMLElement,
   ): { file: TFile; outlineEl: HTMLElement } | null {
@@ -130,7 +124,8 @@ export class PdfContextMenuHandler {
   }
 
   /**
-   * Walk up the DOM tree to find an outline item element.
+   * Walk up from the target to the nearest .tree-item, which represents
+   * exactly one outline level in Obsidian's DOM.
    */
   private findOutlineItemElement(target: HTMLElement): HTMLElement | null {
     let el: HTMLElement | null = target;
@@ -139,7 +134,7 @@ export class PdfContextMenuHandler {
       if (OUTLINE_ITEM_SELECTORS.some((sel) => el!.matches?.(sel))) {
         return el;
       }
-      // Broader fallback: any element with text inside a known outline panel
+      // Broad fallback: any element with text inside a known outline panel
       if (
         el.textContent?.trim() &&
         OUTLINE_PANEL_SELECTORS.some((sel) => el!.closest?.(sel))
@@ -153,24 +148,42 @@ export class PdfContextMenuHandler {
   }
 
   /**
-   * Extract the bookmark title text from an outline item DOM element.
+   * Extract an outline item's own title text.
+   *
+   * For .tree-item elements the title lives inside
+   * .tree-item-self > .tree-item-inner, so we include a deep fallback
+   * constrained to :scope > .tree-item-self to avoid picking up children's
+   * titles that live inside .tree-item-children.
    */
   private extractOutlineTitle(outlineEl: HTMLElement): string | null {
-    // Try dedicated title child elements first
-    const titleCandidates = [
-      outlineEl.querySelector('.outlineItemTitle'),
-      outlineEl.querySelector('.outline-item-title'),
-      outlineEl.querySelector('[class*="title"]'),
-      outlineEl.querySelector('span'),
-    ];
+    // Direct child title elements
+    const titleEl =
+      outlineEl.querySelector(':scope > .outlineItemTitle') ??
+      outlineEl.querySelector(':scope > .outline-item-title') ??
+      outlineEl.querySelector(':scope > [class*="title"]') ??
+      outlineEl.querySelector(':scope > span');
 
-    for (const candidate of titleCandidates) {
-      const text = candidate?.textContent?.trim();
+    if (titleEl) {
+      const text = titleEl.textContent?.trim();
       if (text) return text;
     }
 
-    // Fallback: use the element's own text, stripping trailing page numbers
-    let text = outlineEl.textContent?.trim() || '';
+    // Deep fallback for Obsidian's .tree-item > .tree-item-self > .tree-item-inner
+    const inner =
+      outlineEl.querySelector(':scope > .tree-item-self .tree-item-inner');
+    if (inner) {
+      const text = inner.textContent?.trim();
+      if (text) return text;
+    }
+
+    // Direct text nodes only (not descendant element text)
+    let text = '';
+    for (const child of Array.from(outlineEl.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        text += child.textContent || '';
+      }
+    }
+    text = text.trim();
     if (!text) return null;
 
     text = text.replace(/\s*\(p\.?\s*\d+\)\s*$/, '').trim();
@@ -179,8 +192,52 @@ export class PdfContextMenuHandler {
   }
 
   /**
-   * Build a markdown link string using the plugin's full hierarchical path format.
+   * Reconstruct the full hierarchical path by walking up via parentElement.
+   * Each .tree-item is one outline level; .tree-item-children wrappers and
+   * .tree-item-self/.tree-item-inner inner elements are skipped.
    */
+  private extractOutlinePath(outlineEl: HTMLElement): string[] {
+    const path: string[] = [];
+    let el: HTMLElement | null = outlineEl;
+
+    while (el && el !== el.ownerDocument.body) {
+      if (OUTLINE_PANEL_SELECTORS.some((s) => el!.matches?.(s))) break;
+
+      if (OUTLINE_ITEM_SELECTORS.some((s) => el!.matches?.(s))) {
+        const title = this.extractOutlineTitle(el);
+        if (title) {
+          path.unshift(title);
+        }
+      }
+
+      el = el.parentElement;
+    }
+
+    return path;
+  }
+
+  private findAllBookmarksByTitle(
+    bookmarks: BookmarkNode[],
+    title: string,
+  ): BookmarkNode[] {
+    const results: BookmarkNode[] = [];
+    const normalized = title.trim().toLowerCase();
+
+    const search = (nodes: BookmarkNode[]) => {
+      for (const node of nodes) {
+        if (node.title.trim().toLowerCase() === normalized) {
+          results.push(node);
+        }
+        if (node.children.length > 0) {
+          search(node.children);
+        }
+      }
+    };
+
+    search(bookmarks);
+    return results;
+  }
+
   private buildLink(node: BookmarkNode, pdfFile: TFile): string {
     const pdfPath = pdfFile.path;
     const activeView =
@@ -201,9 +258,6 @@ export class PdfContextMenuHandler {
     return `[${linkText}](${linkPath}#page=${node.page})`;
   }
 
-  /**
-   * Show the custom context menu at the mouse position.
-   */
   private showMenu(
     evt: MouseEvent,
     node: BookmarkNode | null,
@@ -227,7 +281,6 @@ export class PdfContextMenuHandler {
         }),
     );
 
-    // Open PDF at bookmark page (only if we have a matched node)
     if (node) {
       menu.addItem((item) =>
         item
