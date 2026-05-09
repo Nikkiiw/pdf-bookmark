@@ -1,0 +1,283 @@
+/* PDF Bookmark Plugin — Scoped Styles */
+
+/* ---- Sidebar View Container ---- */
+
+.pdf-bookmark-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ---- Header ---- */
+
+.pdf-bookmark-header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  padding: var(--size-4-2) var(--size-4-3);
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+.pdf-bookmark-header-info {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.pdf-bookmark-header-name {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-medium);
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Buttons ---- */
+
+.pdf-bookmark-select-btn,
+.pdf-bookmark-change-btn,
+.pdf-bookmark-refresh-btn {
+  height: 32px;
+  min-width: 44px;
+  padding: 0 var(--size-4-2);
+  font-size: var(--font-ui-small);
+  background-color: var(--interactive-normal);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-bookmark-select-btn:hover,
+.pdf-bookmark-change-btn:hover,
+.pdf-bookmark-refresh-btn:hover {
+  background-color: var(--interactive-hover);
+}
+
+.pdf-bookmark-select-btn:focus-visible,
+.pdf-bookmark-change-btn:focus-visible,
+.pdf-bookmark-refresh-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.pdf-bookmark-change-btn {
+  min-width: 32px;
+  padding: 0 var(--size-2-1);
+  font-size: var(--font-ui-smaller);
+  flex-shrink: 0;
+}
+
+.pdf-bookmark-refresh-btn {
+  flex-shrink: 0;
+}
+
+.pdf-bookmark-select-btn {
+  width: 100%;
+  margin: var(--size-4-4);
+}
+
+/* ---- Copy Button ---- */
+
+.pdf-bookmark-tree-copy-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  margin-left: var(--size-2-1);
+  font-size: 12px;
+  line-height: 1;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.pdf-bookmark-tree-row:hover .pdf-bookmark-tree-copy-btn {
+  opacity: 1;
+}
+
+.pdf-bookmark-tree-copy-btn:hover {
+  background-color: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border);
+}
+
+.pdf-bookmark-tree-copy-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+/* ---- Tree Container ---- */
+
+.pdf-bookmark-tree-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--size-4-1) 0;
+}
+
+/* ---- Tree Row ---- */
+
+.pdf-bookmark-tree-row {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding-right: var(--size-4-2);
+}
+
+/* ---- Chevron ---- */
+
+.pdf-bookmark-tree-chevron {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.pdf-bookmark-tree-chevron:hover {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+}
+
+.pdf-bookmark-tree-chevron:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.pdf-bookmark-tree-chevron-collapsed {
+  /* Default state — triangle pointing right */
+}
+
+.pdf-bookmark-tree-chevron-expanded {
+  /* Rotated to point down when expanded */
+  display: inline-flex;
+  transform: rotate(90deg);
+}
+
+.pdf-bookmark-tree-chevron-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ---- Children Container ---- */
+
+.pdf-bookmark-tree-children-collapsed {
+  display: none;
+}
+
+/* ---- Title Wrapper (clickable target) ---- */
+
+.pdf-bookmark-tree-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  padding: 2px var(--size-2-1);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pdf-bookmark-tree-title-wrapper:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.pdf-bookmark-tree-title-wrapper:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+  background-color: var(--background-modifier-hover);
+}
+
+/* ---- Title Text ---- */
+
+.pdf-bookmark-tree-title {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* ---- Page Badge ---- */
+
+.pdf-bookmark-tree-page {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  background-color: var(--background-modifier-hover);
+  padding: 0 var(--size-2-1);
+  border-radius: var(--radius-s);
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ---- Empty / Error States ---- */
+
+.pdf-bookmark-tree-empty,
+.pdf-bookmark-tree-error {
+  padding: var(--size-4-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.pdf-bookmark-tree-error {
+  color: var(--text-error);
+}
+
+/* ---- Mobile: ensure touch targets >= 44px ---- */
+
+@media (hover: none) and (pointer: coarse) {
+  .pdf-bookmark-tree-row {
+    min-height: 44px;
+  }
+
+  .pdf-bookmark-tree-title-wrapper {
+    min-height: 44px;
+  }
+
+  .pdf-bookmark-tree-chevron {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .pdf-bookmark-select-btn,
+  .pdf-bookmark-change-btn,
+  .pdf-bookmark-refresh-btn {
+    min-height: 44px;
+  }
+
+  .pdf-bookmark-tree-copy-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    opacity: 1;
+  }
+}
