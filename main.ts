@@ -4,6 +4,7 @@ import {
 } from './src/settings';
 import { BookmarkStore } from './src/bookmark-store';
 import { BookmarkView, VIEW_TYPE_PDF_BOOKMARK } from './src/bookmark-view';
+import { PdfContextMenuHandler } from './src/pdf-context-menu';
 import { LinkManager } from './src/link-manager';
 import { PdfSelectModal } from './src/pdf-select-modal';
 import type { PdfBookmarkPluginData, PdfBookmarkSettings } from './src/types';
@@ -20,6 +21,7 @@ export default class PdfBookmarkPlugin extends Plugin {
   settings!: PdfBookmarkSettings;
   store!: BookmarkStore;
   linkManager!: LinkManager;
+  pdfContextMenu!: PdfContextMenuHandler;
 
   async onload(): Promise<void> {
     // Initialize plugin data with defaults
@@ -31,6 +33,10 @@ export default class PdfBookmarkPlugin extends Plugin {
 
     this.store = new BookmarkStore(this);
     this.linkManager = new LinkManager(this);
+
+    // Intercept PDF outline context menu
+    this.pdfContextMenu = new PdfContextMenuHandler(this);
+    this.pdfContextMenu.install();
 
     // Register the sidebar view
     this.registerView(
