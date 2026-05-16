@@ -216,8 +216,13 @@ export class LinkManager {
 
     const mappings = this.plugin.store.getAllLinkMappings();
 
-    // Collect notes that need modification, grouped by note path
-    const noteModifications = new Map<string, Map<number, { old: string; newPage: number }>>();
+    // Collect notes that need modification, grouped by note path.
+    // bookmarkPath is present when the match was resolved via strategy 2
+    // so we can promote it to a stored LinkMapping.
+    const noteModifications = new Map<
+      string,
+      Map<number, { old: string; newPage: number; bookmarkPath?: string[] }>
+    >();
 
     for (const [pdfPath, noteEntries] of byPdf) {
       // Re-parse the PDF
@@ -257,6 +262,7 @@ export class LinkManager {
           // Strategy 2: Match by link text
           // Link text is the full hierarchical path (e.g. "Ch1 > §1.1"),
           // optionally with a page suffix when showPageNumbers is enabled.
+          let matchedViaStrategy2 = false;
           if (newPage === null) {
             const cleanText = match.linkText
               .replace(/\s*\(p\.?\s*\d+\)\s*$/, '')
@@ -265,17 +271,29 @@ export class LinkManager {
             const found = this.findBookmarkByPath(bookmarks, pathSegments);
             if (found) {
               newPage = found.page;
+              matchedViaStrategy2 = true;
             }
           }
 
           if (newPage !== null && newPage !== match.page) {
-            // Queue the modification
+            // Queue the modification.
+            // Include bookmarkPath when resolved via strategy 2 so we can
+            // promote it to a stored LinkMapping after the update.
             let mods = noteModifications.get(note.path);
             if (!mods) {
               mods = new Map();
               noteModifications.set(note.path, mods);
             }
-            mods.set(match.index, { old: match.fullMatch, newPage });
+            mods.set(match.index, {
+              old: match.fullMatch,
+              newPage,
+              bookmarkPath: matchedViaStrategy2
+                ? match.linkText
+                    .replace(/\s*\(p\.?\s*\d+\)\s*$/, '')
+                    .trim()
+                    .split(' > ')
+                : undefined,
+            });
           } else if (newPage === null) {
             result.failed++;
           }
@@ -327,21 +345,31 @@ export class LinkManager {
         return modified;
       });
 
-      // Update stored mappings with new page numbers
-      for (const [, { old: oldMatch, newPage }] of mods) {
+      // Update stored mappings with new page numbers.
+      // For strategy-2 matches without a stored mapping, create one.
+      for (const [, { old: oldMatch, newPage, bookmarkPath }] of mods) {
         const scannedLinks = this.scanNoteContent(oldMatch);
-        if (scannedLinks.length === 1) {
-          const oldPage = scannedLinks[0].page;
-          const mapping = mappings.find(
-            (m) =>
-              m.notePath === notePath &&
-              m.pdfPath === scannedLinks[0].pdfPath &&
-              m.page === oldPage,
-          );
-          if (mapping) {
-            mapping.page = newPage;
-            await this.plugin.store.saveLinkMapping(mapping);
-          }
+        if (scannedLinks.length !== 1) continue;
+
+        const { page: oldPage, pdfPath: linkPdfPath } = scannedLinks[0];
+        const existingMapping = mappings.find(
+          (m) =>
+            m.notePath === notePath &&
+            m.pdfPath === linkPdfPath &&
+            m.page === oldPage,
+        );
+
+        if (existingMapping) {
+          existingMapping.page = newPage;
+          await this.plugin.store.saveLinkMapping(existingMapping);
+        } else if (bookmarkPath && bookmarkPath.length > 0) {
+          // Strategy 2 resolved this match — promote to a stored mapping
+          await this.plugin.store.saveLinkMapping({
+            notePath,
+            pdfPath: linkPdfPath,
+            bookmarkPath,
+            page: newPage,
+          });
         }
       }
     }
