@@ -30,7 +30,7 @@ The plugin uses a **sidebar ItemView** (`BookmarkView`) as the primary UI. Users
 
 - **`bookmark-view.ts`** — Sidebar `ItemView` (`VIEW_TYPE = 'pdf-bookmark-view'`). Contains PDF selector header + tree container. `buildLink()` constructs `[full > hierarchical > path](relative/path.pdf#page=N)` format links with relative paths computed from the active note's location.
 
-- **`link-manager.ts`** — Scans notes for `\.pdf#page=\d+` links (no regex lookbehind for iOS compat), remaps page numbers using stored mappings or title matching. Uses `Vault.process()` for atomic file modifications.
+- **`link-manager.ts`** — Scans notes for `\.pdf#page=\d+` links (no regex lookbehind for iOS compat), remaps page numbers using a two-strategy approach. Uses `Vault.process()` for atomic file modifications. `findBookmarkByPath()` uses element-wise array comparison (not string join) to avoid `/`-in-title ambiguity. `findBookmarkByTitle()` does exact (case-insensitive) single-node title matching — it does NOT handle hierarchical paths; callers must split ` > `-delimited paths beforehand.
 
 - **`pdf-select-modal.ts`** — `FuzzySuggestModal<TFile>` filtered to `.pdf` files.
 
@@ -54,7 +54,12 @@ The original function reference is saved and restored via `this.register()` on u
 
 Inserts: `[Chapter > Section](papers/doc.pdf#page=42)` — the link text is the full hierarchical path joined by ` > `; page number is the anchor.
 
-For remapping, each insertion saves a `LinkMapping` with `bookmarkPath: ["Chapter", "Section"]` as identity. When a PDF is updated, the stored path is used to walk the new bookmark tree to find the new page number. Title-based fallback matching handles links inserted before mappings were tracked.
+For remapping, each sidebar-click insertion saves a `LinkMapping` with `bookmarkPath: ["Chapter", "Section"]` as identity. When a PDF is updated, `updateAllLinks()` uses two strategies:
+
+1. **Stored mapping** — match by `(notePath, pdfPath, page)` → find bookmark by `bookmarkPath` array in the re-parsed tree.
+2. **Link text fallback** — strip any ` (p. N)` suffix, split the link text by ` > ` into path segments, then `findBookmarkByPath()` with those segments. This handles links created via context-menu copy-paste (which don't save a LinkMapping).
+
+`findBookmarkByPath()` compares `node.path` arrays element-by-element — not string-joined — to avoid ambiguity when bookmark titles contain `/`.
 
 ### Data Flow
 
