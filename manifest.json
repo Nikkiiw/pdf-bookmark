@@ -1,11 +1,11 @@
 {
-  "id": "pdf-bookmark",
-  "name": "PDF Bookmark",
-  "version": "0.3.0",
-  "minAppVersion": "1.5.0",
-  "description": "Browse PDF bookmarks, insert links into notes, and keep them valid when PDFs are updated.",
-  "author": "",
-  "authorUrl": "",
-  "fundingUrl": "",
-  "isDesktopOnly": false
+	"id": "pdf-bookmark",
+	"name": "PDF Bookmark",
+	"version": "0.3.1",
+	"minAppVersion": "1.5.0",
+	"description": "Browse PDF bookmarks, insert links into notes, and keep them valid when PDFs are updated.",
+	"author": "",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
 }

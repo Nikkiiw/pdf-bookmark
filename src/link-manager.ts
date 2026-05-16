@@ -156,7 +156,10 @@ export class LinkManager {
     if (path.length === 0 || bookmarks.length === 0) return null;
 
     for (const node of bookmarks) {
-      if (node.path.join('/') === path.join('/')) {
+      if (
+        node.path.length === path.length &&
+        node.path.every((seg, i) => seg === path[i])
+      ) {
         return node;
       }
       if (node.children.length > 0) {
@@ -251,9 +254,15 @@ export class LinkManager {
             }
           }
 
-          // Strategy 2: Match by link text (title search)
+          // Strategy 2: Match by link text
+          // Link text is the full hierarchical path (e.g. "Ch1 > §1.1"),
+          // optionally with a page suffix when showPageNumbers is enabled.
           if (newPage === null) {
-            const found = this.findBookmarkByTitle(bookmarks, match.linkText);
+            const cleanText = match.linkText
+              .replace(/\s*\(p\.?\s*\d+\)\s*$/, '')
+              .trim();
+            const pathSegments = cleanText.split(' > ');
+            const found = this.findBookmarkByPath(bookmarks, pathSegments);
             if (found) {
               newPage = found.page;
             }
