@@ -41,3 +41,5 @@ Browse PDF bookmarks (outline/TOC), insert hierarchical links into notes, and ke
 ```
 
 Links use relative paths from the note to the PDF, so they survive vault relocation.
+
+> [中文说明](README-zh.md)
