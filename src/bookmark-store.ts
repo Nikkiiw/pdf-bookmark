@@ -35,7 +35,7 @@ export class BookmarkStore {
 
     // Always read PDF as binary via Obsidian API — avoids cross-platform
     // file-path issues (Electron file:// URLs, mobile sandboxing, etc.).
-    const pdfData = await this.plugin.app.vault.readBinary(pdfFile);
+    const pdfData = await this.plugin.app.vault.adapter.readBinary(pdfFile.path);
     const bookmarks = await parseBookmarksFromData(pdfData);
 
     // Update cache

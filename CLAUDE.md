@@ -22,7 +22,7 @@ The plugin uses a **sidebar ItemView** (`BookmarkView`) as the primary UI. Users
 
 - **`main.ts`** — Plugin lifecycle, registers the sidebar view, ribbon icon, 3 commands, settings tab, file-modify listener, and most critically: a **monkey-patch on `Workspace.prototype.openLinkText`** that intercepts PDF links (`*.pdf#page=N`) to open them in a split pane or reuse an existing PDF leaf.
 
-- **`pdf-parser.ts`** — Extracts PDF outline/bookmarks using `pdfjs-dist` v3.11.174. PDFs are loaded as binary data via `vault.readBinary()` to avoid cross-platform file-path issues. Destinations come in three forms: direct number (0-based page index), `Ref{num,gen}` object, or string (named destination requiring `getDestination()` lookup).
+- **`pdf-parser.ts`** — Extracts PDF outline/bookmarks using `pdfjs-dist` v3.11.174. PDFs are loaded as binary data via `vault.adapter.readBinary(path)` (not `vault.readBinary(TFile)`) to avoid cross-platform file-path issues and stale TFile-level caching after external file replacement. Destinations come in three forms: direct number (0-based page index), `Ref{num,gen}` object, or string (named destination requiring `getDestination()` lookup).
 
 - **`bookmark-store.ts`** — Caches parsed bookmarks keyed by PDF mtime in `data.json`. Manages `LinkMapping` persistence: each mapping stores `{notePath, pdfPath, bookmarkPath: string[], page}` for remapping when PDFs change.
 
@@ -81,7 +81,7 @@ User runs "Update all links" → LinkManager.updateAllLinks()
 
 - `obsidian` and `pdfjs-dist` are the only runtime deps. Do NOT add new npm dependencies without strong justification.
 - All Obsidian API imports come from the `obsidian` package.
-- Use `vault.readBinary()` for file data, `vault.process()` for atomic note modifications, `vault.getAbstractFileByPath()` for lookups.
+- Use `vault.adapter.readBinary(path)` for file data (bypass TFile cache), `vault.process()` for atomic note modifications, `vault.getAbstractFileByPath()` for lookups.
 - `instanceof TFile` checks required on all vault lookups. `TAbstractFile` alone is not enough.
 - DOM: use `createEl()` / `createDiv()` (never `innerHTML` for content from the vault). Use `registerDomEvent()` from MarkdownView for CodeMirror hooks.
 - No `console.log` in production `onload`/`onunload`. Use `Notice` for user-visible messages.
