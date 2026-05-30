@@ -156,26 +156,28 @@ export default class PdfBookmarkPlugin extends Plugin {
     // Register settings tab
     this.addSettingTab(new PdfBookmarkSettingTab(this.app, this));
 
-    // Auto-detect PDF changes and prompt for link updates
+    // Auto-detect PDF changes and remap existing links
     if (this.settings.autoDetectUpdates) {
       this.registerEvent(
         this.app.vault.on('modify', async (file) => {
           if (!(file instanceof TFile)) return;
           if (file.extension === 'pdf') {
             const cached = this.data.pdfBookmarks[file.path];
-            if (cached && cached.lastModified !== file.stat.mtime) {
-              // Invalidate cache; the next getBookmarks call will re-parse
-              await this.store.invalidate(file.path);
+            const mtimeChanged =
+              cached && cached.lastModified !== file.stat.mtime;
+            const hasMappings =
+              this.store.getLinkMappingsForPdf(file.path).length > 0;
 
-              // Check if there are links to this PDF
-              const mappings =
-                this.store.getLinkMappingsForPdf(file.path);
-              if (mappings.length > 0) {
-                new Notice(
-                  `PDF "${file.name}" was modified. Use "Update all PDF bookmark links" to remap existing links.`,
-                  8000,
-                );
-              }
+            if (mtimeChanged) {
+              await this.store.invalidate(file.path);
+            }
+
+            if (mtimeChanged && hasMappings) {
+              new Notice(
+                `PDF "${file.name}" updated, remapping links…`,
+                4000,
+              );
+              await this.linkManager.updateLinksForPdf(file.path);
             }
           }
         }),

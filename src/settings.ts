@@ -40,7 +40,7 @@ export class PdfBookmarkSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Auto-detect PDF updates')
       .setDesc(
-        'When a PDF is modified, prompt to scan and update existing links.',
+        'When a PDF is modified, automatically scan and remap existing links.',
       )
       .addToggle((toggle) =>
         toggle
