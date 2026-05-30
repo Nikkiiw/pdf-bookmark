@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pdf-bookmark",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Browse PDF bookmarks and insert links that stay valid when PDFs are updated.",
   "main": "main.js",
   "scripts": {
